@@ -1,3 +1,5 @@
+import pickle
+
 import bs4
 import json
 import logging
@@ -6,12 +8,27 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import argparse
+import sys
 from pandas import DataFrame as df
 
-logging.basicConfig(
-    filename='2020-02-28_140k.log',
-    format='%(threadName)s %(name)s %(levelname)s: %(message)s',
-    level=logging.INFO)
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument('--verbose', '-v', action='store_true')
+arg_parser.add_argument('--log', nargs='?', type=str, default=None)
+arg_parser.add_argument('--min-id', type=int, default=10041337)
+arg_parser.add_argument('--input', '-i', type=argparse.FileType('r'), required=True)
+arg_parser.add_argument('--output', '-o', type=argparse.FileType('w'), required=True)
+arguments = arg_parser.parse_args(sys.argv[1:])
+
+log_config = {
+    'format': '%(threadName)s %(name)s %(levelname)s: %(message)s',
+    'level': logging.INFO if arguments.verbose else logging.ERROR,
+}
+
+if arguments.log:
+    log_config['filename'] = arguments.log
+
+logging.basicConfig(**log_config)
 
 
 class MyException(Exception):
@@ -136,10 +153,11 @@ def fetch_response(response_id):
 
 
 set_ids = set()
-f = open("after2017_try4.txt", "r")
-for line in f:
+input_file = arguments.input
+min_id = arguments.min_id
+for line in input_file:
     _id = int(line)
-    if _id > 10041337:  # меньшие этого id нас не интересуют
+    if _id > min_id:  # меньшие этого id нас не интересуют
         set_ids.add(_id)
 new_ids = list(set_ids)
 
@@ -149,5 +167,4 @@ with ThreadPoolExecutor(max_workers=4) as executor:
         pass
 
 print(len(db))
-with open('from_dict_after2017_try4_first140k_ver4.pkl', 'wb') as handle:
-    pickle.dump(db, handle, protocol=4)
+pickle.dump(db, arguments.output, protocol=4)
