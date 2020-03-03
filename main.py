@@ -80,7 +80,7 @@ def get_responce_by_id(response_id):
 
     url = 'https://www.banki.ru/services/responses/bank/response/{}/'.format(response_id)
     # print(url)
-    while 1:
+    while True:
         try:
             resp = requests.get(url)
             if resp.status_code == 404:
@@ -121,7 +121,7 @@ def get_responce_by_id(response_id):
 
 def update_responce_by_id(response_id):
     url = 'https://www.banki.ru/services/responses/bank/response/{}/'.format(response_id)
-    while 1:
+    while True:
         try:
             resp = requests.get(url)
         except:
