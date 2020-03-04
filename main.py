@@ -14,6 +14,7 @@ from pandas import DataFrame as df
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--verbose', '-v', action='store_true')
+arg_parser.add_argument('--debug', '-d', action='store_true')
 arg_parser.add_argument('--log', nargs='?', type=str, default=None)
 arg_parser.add_argument('--min-id', type=int, default=10041337)
 arg_parser.add_argument('--input', '-i', type=argparse.FileType('r'), required=True)
@@ -98,8 +99,13 @@ def get_responce_by_id(response_id):
             if e is not MyException:  # might be already logged as error
                 logging.error('in {} was trouble with get-parse {}: {}'.
                               format(datetime.now().time(), response_id, e))
-            time.sleep(2)
-            continue
+            if arguments.debug:
+                # stop and keep calm coding
+                sys.exit(1)
+            else:
+                # just notify and do as much work as possible
+                time.sleep(2)
+                continue
         else:
             break
 
