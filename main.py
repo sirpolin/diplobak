@@ -37,33 +37,43 @@ class MyException(Exception):
 
 
 def parse_product(soup, url):
+    scripts = soup.findAll('script')
+    matching_script = None
+    for script in scripts:
+        if "allPagesHeader2" in script.text:
+            matching_script = script
+            break
+    if matching_script is None:
+        logging.error("%s document has no 'allPagesHeader2' data in <script>", url)
+        raise MyException()
+    script_parts = re.split(r'DFP.default\(document,', matching_script.text)
+    if len(script_parts) < 2:
+        logging.error("%s document has no 'DFP.default(document,' data in <script>", url)
+        raise MyException()
+    script_tail = script_parts[1]
+    script_parts = re.split(r'\);', script_tail, maxsplit=1)
+    all_pages_header_2_text = script_parts[0]
     try:
-        tmp_list = re.split(r'DFP.default\(document,', soup.findAll('script')[-6].text)
-        '''
-        f = open('soup.txt', 'a')
-        for elem in tmp_list:
-            f.write(elem)
-        f.write(url)
-        f.close()
-        '''
-        tmp_json = json.loads(re.split(r'\);', tmp_list[1], maxsplit=1)[0])['allPagesHeader2']['targets']
-        ''' f2 = open('json.txt', 'a')
-        json.dump(tmp_json, f2)
-        f2.write(url)
-        f2.close()
-        '''
+        json_data = json.loads(all_pages_header_2_text)
     except Exception as e:
-        logging.error('in {} was trouble with parse_product {}: {}'.format(datetime.now().time(), url, e))
-        raise MyException(Exception)
-    else:
-        ans = ()
-        for elem in tmp_json:
-            if elem['name'] == 'NRproduct':
-                if type(elem['value']) == list:
-                    ans = tuple(elem['value'])
-                else:
-                    ans = (elem['value'],)
-        return ans
+        logging.error("%s document has no JSON data after 'DFP.default(document,' data in <script>", url)
+        raise MyException()
+    if 'allPagesHeader2' not in json_data:
+        logging.error("%s document has no 'allPagesHeader2' in JSON data in <script>", url)
+        raise MyException()
+    all_pages_header_2 = json_data['allPagesHeader2']
+    if 'targets' not in all_pages_header_2:
+        logging.error("%s document has no 'targets' in JSON['allPagesHeader2'] data in <script>", url)
+        raise MyException()
+    targets = all_pages_header_2['targets']
+    ans = ()
+    for elem in targets:
+        if elem['name'] == 'NRproduct':
+            if type(elem['value']) == list:
+                ans = tuple(elem['value'])
+            else:
+                ans = (elem['value'],)
+    return ans
 
 
 def get_responce_by_id(response_id):
