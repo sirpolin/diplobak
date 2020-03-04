@@ -17,7 +17,7 @@ arg_parser.add_argument('--verbose', '-v', action='store_true')
 arg_parser.add_argument('--log', nargs='?', type=str, default=None)
 arg_parser.add_argument('--min-id', type=int, default=10041337)
 arg_parser.add_argument('--input', '-i', type=argparse.FileType('r'), required=True)
-arg_parser.add_argument('--output', '-o', type=argparse.FileType('w'), required=True)
+arg_parser.add_argument('--output', '-o', type=argparse.FileType('wb'), required=True)
 arguments = arg_parser.parse_args(sys.argv[1:])
 
 log_config = {
@@ -162,7 +162,7 @@ for line in input_file:
 new_ids = list(set_ids)
 
 db = {}
-with ThreadPoolExecutor(max_workers=4) as executor:
+with ThreadPoolExecutor(max_workers=8) as executor:
     for _ in executor.map(fetch_response, new_ids[:140000]):
         pass
 
