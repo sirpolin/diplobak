@@ -51,8 +51,8 @@ def parse_product(soup, url):
         f2.write(url)
         f2.close()
         '''
-    except:
-        logging.info('in {} was trouble with parse_product {}'.format(datetime.now().time(), url))
+    except Exception as e:
+        logging.error('in {} was trouble with parse_product {}: {}'.format(datetime.now().time(), url, e))
         raise MyException(Exception)
     else:
         ans = ()
@@ -94,8 +94,10 @@ def get_responce_by_id(response_id):
                 return
 
             parse_product(soup, url)
-        except:
-            logging.info('in {} was trouble with get-parse {}'.format(datetime.now().time(), response_id))
+        except Exception as e:
+            if e is not MyException:  # might be already logged as error
+                logging.error('in {} was trouble with get-parse {}: {}'.
+                              format(datetime.now().time(), response_id, e))
             time.sleep(2)
             continue
         else:
