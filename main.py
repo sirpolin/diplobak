@@ -16,9 +16,10 @@ arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--verbose', '-v', action='store_true')
 arg_parser.add_argument('--debug', '-d', action='store_true')
 arg_parser.add_argument('--log', nargs='?', type=str, default=None)
-arg_parser.add_argument('--min-id', type=int, default=10041337)
+arg_parser.add_argument('--min-id', type=int, default=10041337)  # 2017 year
 arg_parser.add_argument('--input', '-i', type=argparse.FileType('r'), required=True)
 arg_parser.add_argument('--output', '-o', type=argparse.FileType('wb'), required=True)
+arg_parser.add_argument('--max-count', '-c', type=int, default=None)
 arguments = arg_parser.parse_args(sys.argv[1:])
 
 log_config = {
@@ -34,6 +35,9 @@ logging.basicConfig(**log_config)
 
 class MyException(Exception):
     pass
+
+
+all_product_types = set()
 
 
 def parse_product(soup, url):
@@ -70,9 +74,11 @@ def parse_product(soup, url):
     for elem in targets:
         if elem['name'] == 'NRproduct':
             if type(elem['value']) == list:
-                ans = tuple(elem['value'])
+                ans = set(elem['value'])
             else:
-                ans = (elem['value'],)
+                ans = set([elem['value']])
+    global all_product_types
+    all_product_types |= set(ans)
     return ans
 
 
@@ -97,7 +103,9 @@ def get_responce_by_id(response_id):
             if resp.status_code == 404:
                 logging.info('in {} resp.status_code was 404 with {}'.format(datetime.now().time(), response_id))
                 return
-
+            if resp.status_code != 200:
+                logging.error("Error getting %s: %d", url, resp.status_code)
+                return
             soup = bs4.BeautifulSoup(resp.text, 'lxml')
             if soup.find('h1', 'header-h0 margin-bottom-large') is not None:
                 logging.info(
@@ -180,9 +188,24 @@ for line in input_file:
 new_ids = list(set_ids)
 
 db = {}
+if arguments.max_count is not None:
+    new_ids = new_ids[:arguments.max_count]
+
 with ThreadPoolExecutor(max_workers=8) as executor:
-    for _ in executor.map(fetch_response, new_ids[:140000]):
+    for _ in executor.map(fetch_response, new_ids):
         pass
 
+
+def update_entry_products(entry: dict):
+    for prod in all_product_types:
+        field_name = "prod_" + prod
+        entry[field_name] = 1 if prod in entry["product"] else 0
+    del entry["product"]
+
+
+for entry in db.values():
+    update_entry_products(entry)
+
 print(len(db))
+
 pickle.dump(db, arguments.output, protocol=4)
