@@ -1,16 +1,21 @@
-import pickle
+#!/usr/bin/python3
 
+# ! pip3 install compress-pickle
+import compress_pickle
+# ! pip3 install beautifulsoup4
 import bs4
+# ! pip3 install requests
+import requests
+
+# standard library modules
 import json
 import logging
-import requests
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import argparse
 import sys
-from pandas import DataFrame as df
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--verbose', '-v', action='store_true')
@@ -31,6 +36,8 @@ if arguments.log:
     log_config['filename'] = arguments.log
 
 logging.basicConfig(**log_config)
+
+errors_count = 0
 
 
 class MyException(Exception):
@@ -163,8 +170,6 @@ def update_responce_by_id(response_id):
         db[response_id]['num_comments'] = int(soup.find("span", "link-with-icon__text color-gray-blue--alpha-60").text)
     else:
         return
-        # may be remove id from db?
-        # ask Albina
 
 
 def fetch_response(response_id):
@@ -191,7 +196,7 @@ db = {}
 if arguments.max_count is not None:
     new_ids = new_ids[:arguments.max_count]
 
-with ThreadPoolExecutor(max_workers=8) as executor:
+with ThreadPoolExecutor(max_workers=4) as executor:
     for _ in executor.map(fetch_response, new_ids):
         pass
 
@@ -208,4 +213,4 @@ for entry in db.values():
 
 print(len(db))
 
-pickle.dump(db, arguments.output, protocol=4)
+compress_pickle.dump(db, arguments.output, protocol=4, compression="gzip")
