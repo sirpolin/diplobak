@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
-# ! pip3 install compress-pickle
-import compress_pickle
 # ! pip3 install beautifulsoup4
 import bs4
 # ! pip3 install requests
 import requests
+# ! pip3 install pandas
+from pandas import DataFrame
 
 # standard library modules
 import json
@@ -16,6 +16,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import argparse
 import sys
+import subprocess
+import pickle
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--verbose', '-v', action='store_true')
@@ -25,6 +27,7 @@ arg_parser.add_argument('--min-id', type=int, default=10041337)  # 2017 year
 arg_parser.add_argument('--input', '-i', type=argparse.FileType('r'), required=True)
 arg_parser.add_argument('--output', '-o', type=argparse.FileType('wb'), required=True)
 arg_parser.add_argument('--max-count', '-c', type=int, default=None)
+arg_parser.add_argument('--gzip-output', '-z', action='store_true')
 arguments = arg_parser.parse_args(sys.argv[1:])
 
 log_config = {
@@ -213,4 +216,8 @@ for entry in db.values():
 
 print(len(db))
 
-compress_pickle.dump(db, arguments.output, protocol=4, compression="gzip")
+df = DataFrame(db)
+transposed_df = df.T
+pickle.dump(transposed_df, arguments.output, protocol=4)
+if arguments.gzip_output:
+    subprocess.run(["gzip", "-9", arguments.output.name])
