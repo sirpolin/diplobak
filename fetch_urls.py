@@ -2,8 +2,6 @@
 
 # ! pip3 install beautifulsoup4, lxml
 import bs4
-# ! pip3 install requests
-import requests
 # ! pip3 install sqlalchemy, psycopg2
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, func
@@ -12,11 +10,18 @@ from sqlalchemy import create_engine, func
 import re
 import math
 from datetime import datetime
+import logging
+import argparse
+import sys
 
 from response import Response
 
+import http
+from http import get_from_url
+
 with open('_product_names', 'r') as product_names_file:
     product_names = [line.rstrip('\n') for line in product_names_file]
+
 
 # _db_string pattern:
 # postgres://user:password@server:port/table_name
@@ -28,7 +33,7 @@ Session = sessionmaker(bind=engine)
 session = Session()
 
 
-def fetch_product(product_name, last_id):
+def fetch_product(product_name, last_id, arguments):
     with open('_resp_suffix', 'r') as resp_suffix_file:
         resp_suffix_str = resp_suffix_file.readline()
 
@@ -43,8 +48,9 @@ def fetch_product(product_name, last_id):
         product_suffix_str = product_suffix_file.readline()
 
     url = f'{site_prefix_str}/{product_suffix_str}/{product_name}/'
-    resp = requests.get(url)
-    soup = bs4.BeautifulSoup(resp.text, 'lxml')
+
+    soup = bs4.BeautifulSoup(http(url, arguments.debug), 'lxml')
+
     count_responses = int(soup.find('div', 'margin-top-default').attrs['data-options'].split(';')[2].split(':')[1])
     print('responses=', count_responses)
     total_pages = math.ceil(int(count_responses) / 25)
@@ -52,8 +58,8 @@ def fetch_product(product_name, last_id):
 
     for page in range(total_pages):
         tmp_url = f'{site_prefix_str}/{product_suffix_str}/{product_name}/?page={page + 1}'
-        tmp_resp = requests.get(tmp_url)
-        tmp_result = resp_pattern_regexp.findall(tmp_resp.text)
+        tmp_resp = http(tmp_url, arguments.debug)
+        tmp_result = resp_pattern_regexp.findall(tmp_resp)
         # removing duplicates
         del tmp_result[::2]
         for elem in tmp_result:
@@ -71,18 +77,13 @@ def fetch_product(product_name, last_id):
             session.commit()
 
 
-def fetch_products():
-    for current_product_name in product_names:
+def fetch_products(arguments):
+    for curr_product_name in product_names:
         # get last stored id from database
-        max_current_id = session.query(func.max(Response.response_id)).filter_by(**{current_product_name: True}).scalar()
-        if max_current_id is None:
-            max_current_id = 10041337
+        max_curr_id = session.query(func.max(Response.response_id)).filter_by(**{curr_product_name: True}).scalar()
+        if max_curr_id is None:
+            max_curr_id = arguments.min_id
             # default value for 2017 year
-        fetch_product(current_product_name, max_current_id)
+        fetch_product(curr_product_name, max_curr_id)
 
-#for examlpe, getting of leasing
-start = datetime.now()
-fetch_product('leasing', 370938)
-end = datetime.now()
-print(end-start)
 
