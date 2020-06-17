@@ -15,9 +15,7 @@ import argparse
 import sys
 
 from response import Response
-
-import http
-from http import get_from_url
+from http_requests import get_from_url
 
 with open('_product_names', 'r') as product_names_file:
     product_names = [line.rstrip('\n') for line in product_names_file]
@@ -49,7 +47,7 @@ def fetch_product(product_name, last_id, arguments):
 
     url = f'{site_prefix_str}/{product_suffix_str}/{product_name}/'
 
-    soup = bs4.BeautifulSoup(http(url, arguments.debug), 'lxml')
+    soup = bs4.BeautifulSoup(get_from_url(url, arguments.debug), 'lxml')
 
     count_responses = int(soup.find('div', 'margin-top-default').attrs['data-options'].split(';')[2].split(':')[1])
     print('responses=', count_responses)
@@ -58,7 +56,7 @@ def fetch_product(product_name, last_id, arguments):
 
     for page in range(total_pages):
         tmp_url = f'{site_prefix_str}/{product_suffix_str}/{product_name}/?page={page + 1}'
-        tmp_resp = http(tmp_url, arguments.debug)
+        tmp_resp = get_from_url(tmp_url, arguments.debug)
         tmp_result = resp_pattern_regexp.findall(tmp_resp)
         # removing duplicates
         del tmp_result[::2]

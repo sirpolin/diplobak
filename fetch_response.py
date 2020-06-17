@@ -18,9 +18,7 @@ from datetime import datetime
 import sys
 
 from response import Response
-
-import http
-from http import get_from_url
+from http_requests import get_from_url
 
 with open('_resp_suffix', 'r') as resp_suffix_file:
     resp_suffix_str = resp_suffix_file.readline()
@@ -43,7 +41,7 @@ def fetch_response(session, response_id, arguments):
     tag_num_comments = 'link-with-icon__text color-gray-blue--alpha-60'
 
     url = f'{site_prefix_str}/{resp_suffix_str}/{response_id}/'
-    http(url, arguments.debug)
+    get_from_url(url, arguments.debug)
     while True:
         try:
             resp = requests.get(url)
